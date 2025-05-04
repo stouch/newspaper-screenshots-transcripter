@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Newspaper {
+  id          Int             @id @default(autoincrement())
+  name        String          @db.VarChar(255)
+  description String?
+  pages       NewspaperPage[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model NewspaperPage {
+  id              Int             @id @default(autoincrement())
+  name            String          @db.VarChar(255)
+  fileUrl         String          @db.VarChar(255)
+  width           Int             @default(400)
+  height          Int             @default(600)
+  x               Int
+  y               Int
+  uploadDate      DateTime        @default(now())
+  newspaper       Newspaper?      @relation(fields: [newspaperId], references: [id])
+  newspaperId     Int?
+  transcriptBoxes TranscriptBox[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model TranscriptBox {
+  id              Int                        @id @default(autoincrement())
+  x               Int
+  y               Int
+  width           Int
+  height          Int
+  partFileUrl     String?                    @db.VarChar(255)
+  language        String                     @default("en")
+  text            String?                    @db.Text
+  newspaperPage   NewspaperPage              @relation(fields: [newspaperPageId], references: [id])
+  newspaperPageId Int
+  translations    TranscriptBoxTranslation[]
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+}
+
+model TranscriptBoxTranslation {
+  id              Int           @id @default(autoincrement())
+  language        String        @db.Char(2)
+  translationText String        @db.Text
+  transcriptBox   TranscriptBox @relation(fields: [transcriptBoxId], references: [id])
+  transcriptBoxId Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([transcriptBoxId, language])
+}
