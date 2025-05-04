@@ -3,9 +3,12 @@
 
 A Next.js application that allows users to upload *pages* (a *page* is basically a screenshot from a specific Newspaper, or from a specific Website), select areas for transcription, and automatically generate transcriptions with translations.
 
+![Screenshot](screenshot.png)
+
+
 ## Features
 
-- Upload newspaper pages and positionate them like you want
+- Drag and drop to upload the newspaper pages, and positionate them like you want
 - Select areas for transcription
 - Automatic text recognition using OpenAI's GPT-4 Vision
 - French translations of transcriptions
