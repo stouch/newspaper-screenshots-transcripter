@@ -1,15 +1,71 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TranscriptBox } from '@/types/transcript';
 
 interface TranscriptBoxComponentProps {
   box: TranscriptBox;
   onUpdate: (updates: Partial<TranscriptBox>) => void;
+  onDelete: () => void;
   isLoading?: boolean;
 }
 
-const TranscriptBoxComponent = ({ box, onUpdate, isLoading = false }: TranscriptBoxComponentProps) => {
-  const frenchTranslation = box.translations?.find(t => t.language === 'fr')?.translationText;
+const TranscriptBoxComponent = ({ box, onUpdate, onDelete, isLoading = false }: TranscriptBoxComponentProps) => {
+  const frenchTranslation = box.translations?.find(t => t.language === 'fr')?.translationText.replace(/^(\`\`\`|")|("|`\`\`$)/g, '');
   const displayText = frenchTranslation || box.text;
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [fontSize, setFontSize] = useState('7px');
+
+  useEffect(() => {
+    if (!textRef.current || !displayText) return;
+
+    const calculateFontSize = () => {
+      const textElement = textRef.current;
+      if (!textElement) {
+        return;
+      }
+
+      const containerWidth = box.width - 4; // Subtract padding
+      const containerHeight = box.height - 4; // Subtract padding
+
+      let currentSize = 5; // Start with a reasonable size
+      let lastGoodSize = currentSize;
+      let iterations = 0;
+      const maxIterations = 300;
+
+      const doesTextFit = (size: number) => {
+        textElement.style.fontSize = `${size}px`;
+        const textWidth = textElement.scrollWidth;
+        const textHeight = textElement.scrollHeight;
+        return textWidth <= containerWidth && textHeight <= containerHeight;
+      };
+
+      // First, find a size that fits
+      while (!doesTextFit(currentSize) && currentSize > 4 && iterations < maxIterations) {
+        currentSize -= 0.1;
+        iterations++;
+      }
+
+      // Now try to increase the size gradually
+      while (iterations < maxIterations) {
+        const nextSize = currentSize + 0.1
+        if (doesTextFit(nextSize)) {
+          lastGoodSize = currentSize;
+          currentSize = nextSize;
+        } else {
+          // If it doesn't fit, revert to the last good size
+          currentSize = lastGoodSize;
+          break;
+        }
+        iterations++;
+      }
+
+      setFontSize(`${Math.max(4, currentSize)}px`);
+    };
+
+    calculateFontSize();
+    // Recalculate on window resize
+    window.addEventListener('resize', calculateFontSize);
+    return () => window.removeEventListener('resize', calculateFontSize);
+  }, [box.width, box.height, displayText]);
 
   return (
     <div
@@ -21,6 +77,13 @@ const TranscriptBoxComponent = ({ box, onUpdate, isLoading = false }: Transcript
         height: box.height,
       }}
     >
+      <button
+        onClick={onDelete}
+        className="absolute top-0 right-0 p-1 text-red-500 hover:text-red-700"
+        style={{ zIndex: 1 }}
+      >
+        ×
+      </button>
       {isLoading ? (
         <div className="flex items-center justify-center h-full">
           <div className="animate-pulse flex space-x-2">
@@ -30,7 +93,21 @@ const TranscriptBoxComponent = ({ box, onUpdate, isLoading = false }: Transcript
           </div>
         </div>
       ) : (
-        displayText && <p style={{ fontSize: '7px' }} className='leading-tight'>{displayText}</p>
+        displayText && (
+          <p
+            ref={textRef}
+            style={{
+              fontSize,
+              lineHeight: '1.2',
+              margin: 0,
+              padding: 0,
+              wordBreak: 'break-word',
+              overflow: 'hidden'
+            }}
+            className='leading-tight'
+            dangerouslySetInnerHTML={{ __html: displayText }}>
+          </p>
+        )
       )}
     </div>
   );

@@ -137,6 +137,27 @@ export default function Home() {
     }
   };
 
+  const handleTranscriptBoxDelete = async (boxId: number) => {
+    try {
+      const response = await fetch(`/api/transcript-boxes/${boxId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete transcript box');
+      }
+
+      setPages((prevPages) =>
+        prevPages.map((page) => ({
+          ...page,
+          transcriptBoxes: page.transcriptBoxes?.filter((box: TranscriptBox) => box.id !== boxId),
+        }))
+      );
+    } catch (error) {
+      console.error('Error deleting transcript box:', error);
+    }
+  };
+
   const handleTranscriptGenerate = async (pageId: number, x: number, y: number, width: number, height: number) => {
     try {
       const response = await fetch('/api/transcript-boxes/generate', {
@@ -235,6 +256,7 @@ export default function Home() {
         pages={pages}
         onTranscriptBoxCreate={handleTranscriptBoxCreate}
         onTranscriptBoxUpdate={handleTranscriptBoxUpdate}
+        onTranscriptBoxDelete={handleTranscriptBoxDelete}
         onTranscriptGenerate={handleTranscriptGenerate}
         onPageMove={handlePageMove}
         onPageResize={handlePageResize}

@@ -101,7 +101,7 @@ export async function POST(request: Request) {
           content: [
             {
               type: "text",
-              text: "Please transcribe the text in this image, even if it's not in english or if it's an old language. Return only the text, no additional formatting or explanation :"
+              text: "Please transcribe the text in this image, even if it's not in english or if it's an ancient language. If they exist, I need to get the text that is bigger than the rest with <h1> tags. Return only the text, with the <h1> tags if they exist, no additional formatting or explanation :"
             },
             {
               type: "image_url",
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "user",
-          content: `Please translate the following text to French: \`\`\`${transcript}\`\`\`.  Return only the translated text, no additional formatting or explanation :`
+          content: `Please translate the following text to French: \`\`\`${transcript}\`\`\`. Keep HTML tags if they exist. Return only the translated text, no additional formatting or explanation :`
         }
       ],
       max_tokens: 4000,

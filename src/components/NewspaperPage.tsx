@@ -22,6 +22,7 @@ interface NewspaperPageProps {
   };
   onTranscriptBoxCreate: (x: number, y: number, width: number, height: number) => Promise<void>;
   onTranscriptBoxUpdate: (boxId: number, updates: Partial<TranscriptBox>) => Promise<void>;
+  onTranscriptBoxDelete: (boxId: number) => Promise<void>;
   onTranscriptGenerate: (x: number, y: number, width: number, height: number) => Promise<void>;
   onPageMove?: (x: number, y: number) => Promise<void>;
   onPageResize?: (width: number, height: number) => Promise<void>;
@@ -32,6 +33,7 @@ interface NewspaperPageProps {
 const NewspaperPage = ({
   page,
   onTranscriptBoxUpdate,
+  onTranscriptBoxDelete,
   onTranscriptGenerate,
   onPageMove,
   onPageResize,
@@ -100,11 +102,11 @@ const NewspaperPage = ({
             onSelect={handleSelect}
           />}
         {loadingBox && (
-          <div className="absolute inset-0 flex items-center justify-center" style={{
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50" style={{
             zIndex: 1000,
-            left: loadingBox.x, 
-            top: loadingBox.y, 
-            width: loadingBox.width, 
+            left: loadingBox.x,
+            top: loadingBox.y,
+            width: loadingBox.width,
             height: loadingBox.height
           }}>
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -115,6 +117,7 @@ const NewspaperPage = ({
             key={box.id}
             box={box}
             onUpdate={(updates) => onTranscriptBoxUpdate(box.id, updates)}
+            onDelete={() => onTranscriptBoxDelete(box.id)}
           />
         ))}
       </div>

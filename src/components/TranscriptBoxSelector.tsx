@@ -45,14 +45,24 @@ const TranscriptBoxSelector = ({ containerRef, onSelect }: TranscriptBoxSelector
       setRect(null);
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selecting) {
+        setSelecting(false);
+        setStart(null);
+        setRect(null);
+      }
+    };
+
     container.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       container.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [containerRef, selecting, start, rect, onSelect]);
 

@@ -8,6 +8,7 @@ interface NewspaperViewerProps {
   pages: NewspaperPageType[];
   onTranscriptBoxCreate: (pageId: number, x: number, y: number, width: number, height: number) => Promise<void>;
   onTranscriptBoxUpdate: (boxId: number, updates: Partial<TranscriptBox>) => Promise<void>;
+  onTranscriptBoxDelete: (boxId: number) => Promise<void>;
   onTranscriptGenerate: (pageId: number, x: number, y: number, width: number, height: number) => Promise<void>;
   onPageMove: (pageId: number, x: number, y: number) => Promise<void>;
   onPageResize: (pageId: number, width: number, height: number) => Promise<void>;
@@ -17,6 +18,7 @@ const NewspaperViewer = ({
   pages,
   onTranscriptBoxCreate,
   onTranscriptBoxUpdate,
+  onTranscriptBoxDelete,
   onTranscriptGenerate,
   onPageMove,
   onPageResize,
@@ -32,6 +34,10 @@ const NewspaperViewer = ({
 
   const handleTranscriptBoxUpdate = async (boxId: number, updates: Partial<TranscriptBox>) => {
     await onTranscriptBoxUpdate(boxId, updates);
+  };
+
+  const handleTranscriptBoxDelete = async (boxId: number) => {
+    await onTranscriptBoxDelete(boxId);
   };
 
   const handleTranscriptGenerate = async (pageId: number, x: number, y: number, width: number, height: number) => {
@@ -75,6 +81,7 @@ const NewspaperViewer = ({
             handleTranscriptBoxCreate(page.id, x, y, width, height)
           }
           onTranscriptBoxUpdate={handleTranscriptBoxUpdate}
+          onTranscriptBoxDelete={handleTranscriptBoxDelete}
           onTranscriptGenerate={(x, y, width, height) =>
             handleTranscriptGenerate(page.id, x, y, width, height)
           }
