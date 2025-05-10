@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { prisma } from '@/lib/prisma';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { Readable } from 'stream';
-import sharp from 'sharp';
-import { randomUUID } from 'crypto';
-import { uploadToS3 } from '@/lib/s3';
+import { NextResponse } from "next/server";
+import OpenAI from "openai";
+import { prisma } from "@/lib/prisma";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { Readable } from "stream";
+import sharp from "sharp";
+import { randomUUID } from "crypto";
+import { uploadToS3 } from "@/lib/s3";
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION!,
@@ -22,15 +22,29 @@ const openai = new OpenAI({
 async function streamToBuffer(stream: Readable): Promise<Buffer> {
   const chunks: Buffer[] = [];
   return new Promise((resolve, reject) => {
-    stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-    stream.on('error', (err) => reject(err));
-    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+    stream.on("error", (err) => reject(err));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
   });
 }
 
 export async function POST(request: Request) {
   try {
-    const { pageId, x, y, width, height } = await request.json();
+    const {
+      pageId,
+      x,
+      y,
+      width,
+      height,
+      language,
+    }: {
+      pageId: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      language: "fr" | "en" | "de";
+    } = await request.json();
 
     // Get the newspaper page
     const newspaperPage = await prisma.newspaperPage.findUnique({
@@ -38,7 +52,10 @@ export async function POST(request: Request) {
     });
 
     if (!newspaperPage) {
-      return NextResponse.json({ error: 'Newspaper page not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Newspaper page not found" },
+        { status: 404 }
+      );
     }
 
     // Extract the key from the fileUrl
@@ -53,7 +70,10 @@ export async function POST(request: Request) {
     );
 
     if (!Body) {
-      return NextResponse.json({ error: 'Failed to get image from S3' }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to get image from S3" },
+        { status: 500 }
+      );
     }
 
     const imageBuffer = await streamToBuffer(Body as Readable);
@@ -83,43 +103,55 @@ export async function POST(request: Request) {
       })
       .toBuffer();
 
-
     // Generate a unique filename
-    const fileExtension = key.split('.').pop();
+    const fileExtension = key.split(".").pop();
     const partUniqueFilename = `${randomUUID()}.${fileExtension}`;
     const partFilePath = `pages-parts/${partUniqueFilename}`;
 
     // Convert the cropped image to base64
-    const base64Image = croppedImageBuffer.toString('base64');
+    const base64Image = croppedImageBuffer.toString("base64");
+
+    const LANG_MAPPING = {
+      fr: "French",
+      en: "English",
+      de: "German",
+    };
 
     // Call OpenAI API to get the transcript
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Please transcribe the text in this image, even if it's not in english or if it's an ancient language. If they exist, I need to get the text that is bigger than the rest with <h1> tags. Return only the text, with the <h1> tags if they exist, no additional formatting or explanation :"
+              text: `Please transcribe the text in this newspaper article. It's written in ${LANG_MAPPING[language]}. If they exist, I need to get the text that is bigger than the rest with <h1> tags. The parsed text, and only the text, is :`,
             },
             {
               type: "image_url",
               image_url: {
                 url: `data:image/jpeg;base64,${base64Image}`,
-                detail: "auto"
-              }
-            }
+                detail: "high",
+              },
+            },
           ],
         },
       ],
       max_tokens: 4000,
     });
 
-    const transcript = response.choices[0].message.content;
+    const transcript = response.choices[0].message.content?.replace(
+      /```(html|json)?/g,
+      ""
+    );
 
     // Upload to S3
-    const partSignedUrl = await uploadToS3(croppedImageBuffer, partFilePath, ContentType || 'image/jpeg');
+    const partSignedUrl = await uploadToS3(
+      croppedImageBuffer,
+      partFilePath,
+      ContentType || "image/jpeg"
+    );
 
     // Create the transcript box
     const transcriptBox = await prisma.transcriptBox.create({
@@ -131,6 +163,7 @@ export async function POST(request: Request) {
         height,
         partFileUrl: partFilePath,
         text: transcript || null,
+        language: language,
       },
       include: {
         translations: true,
@@ -143,13 +176,17 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "user",
-          content: `Please translate the following text to French: \`\`\`${transcript}\`\`\`. Keep HTML tags if they exist. Return only the translated text, no additional formatting or explanation :`
-        }
+          content: `Please translate the following text, which is written in ${LANG_MAPPING[language]}, to French: \`\`\`${transcript}\`\`\`. Keep HTML tags if they exist. Return only the translated text, no additional formatting or explanation :`,
+        },
       ],
       max_tokens: 4000,
     });
 
-    const frenchTranslation = translationResponse.choices[0].message.content;
+    const frenchTranslation =
+      translationResponse.choices[0].message.content?.replace(
+        /```(html|json)?/g,
+        ""
+      );
 
     // Create the French translation
     await prisma.transcriptBoxTranslation.create({
@@ -170,10 +207,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(updatedBox);
   } catch (error) {
-    console.error('Error generating transcript:', error);
+    console.error("Error generating transcript:", error);
     return NextResponse.json(
-      { error: 'Failed to generate transcript' },
+      { error: "Failed to generate transcript" },
       { status: 500 }
     );
   }
-} 
+}

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { TranscriptBox } from '@/types/transcript';
+import React, { useEffect, useRef, useState } from "react";
+import { TranscriptBox } from "@/types/transcript";
 
 interface TranscriptBoxComponentProps {
   box: TranscriptBox;
@@ -8,11 +8,19 @@ interface TranscriptBoxComponentProps {
   isLoading?: boolean;
 }
 
-const TranscriptBoxComponent = ({ box, onUpdate, onDelete, isLoading = false }: TranscriptBoxComponentProps) => {
-  const frenchTranslation = box.translations?.find(t => t.language === 'fr')?.translationText.replace(/^(\`\`\`|")|("|`\`\`$)/g, '');
+const TranscriptBoxComponent = ({
+  box,
+  onUpdate,
+  onDelete,
+  isLoading = false,
+}: TranscriptBoxComponentProps) => {
+  const frenchTranslation = box.translations
+    ?.find((t) => t.language === "fr")
+    ?.translationText.replace(/^(\`\`\`|")|("|`\`\`$)/g, "")
+    .replace(/\n/g, "<br/>");
   const displayText = frenchTranslation || box.text;
   const textRef = useRef<HTMLParagraphElement>(null);
-  const [fontSize, setFontSize] = useState('7px');
+  const [fontSize, setFontSize] = useState("7px");
 
   useEffect(() => {
     if (!textRef.current || !displayText) return;
@@ -39,14 +47,18 @@ const TranscriptBoxComponent = ({ box, onUpdate, onDelete, isLoading = false }: 
       };
 
       // First, find a size that fits
-      while (!doesTextFit(currentSize) && currentSize > 4 && iterations < maxIterations) {
+      while (
+        !doesTextFit(currentSize) &&
+        currentSize > 4 &&
+        iterations < maxIterations
+      ) {
         currentSize -= 0.1;
         iterations++;
       }
 
       // Now try to increase the size gradually
       while (iterations < maxIterations) {
-        const nextSize = currentSize + 0.1
+        const nextSize = currentSize + 0.1;
         if (doesTextFit(nextSize)) {
           lastGoodSize = currentSize;
           currentSize = nextSize;
@@ -63,8 +75,8 @@ const TranscriptBoxComponent = ({ box, onUpdate, onDelete, isLoading = false }: 
 
     calculateFontSize();
     // Recalculate on window resize
-    window.addEventListener('resize', calculateFontSize);
-    return () => window.removeEventListener('resize', calculateFontSize);
+    window.addEventListener("resize", calculateFontSize);
+    return () => window.removeEventListener("resize", calculateFontSize);
   }, [box.width, box.height, displayText]);
 
   return (
@@ -98,19 +110,19 @@ const TranscriptBoxComponent = ({ box, onUpdate, onDelete, isLoading = false }: 
             ref={textRef}
             style={{
               fontSize,
-              lineHeight: '1.2',
+              lineHeight: "1.2",
               margin: 0,
               padding: 0,
-              wordBreak: 'break-word',
-              overflow: 'hidden'
+              wordBreak: "break-word",
+              overflow: "hidden",
             }}
-            className='leading-tight'
-            dangerouslySetInnerHTML={{ __html: displayText }}>
-          </p>
+            className="leading-tight"
+            dangerouslySetInnerHTML={{ __html: displayText }}
+          ></p>
         )
       )}
     </div>
   );
 };
 
-export default TranscriptBoxComponent; 
+export default TranscriptBoxComponent;
